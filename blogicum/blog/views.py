@@ -1,3 +1,7 @@
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import (
     ListView,
     CreateView,
@@ -5,9 +9,6 @@ from django.views.generic import (
     DeleteView,
     DetailView,
 )
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.urls import reverse_lazy
 from django.http import HttpRequest, HttpResponse, Http404
@@ -20,7 +21,7 @@ from core.utils import get_paginator
 
 
 class PostListView(ListView):
-    """ Главная страница сайта."""
+    """Главная страница сайта."""
 
     template_name = 'blog/index.html'
     model = Post
@@ -82,7 +83,7 @@ def category_posts(request: HttpRequest, category_slug: str) -> HttpResponse:
 
 
 def user_profile(request, username):
-    """Профиль пользотвателя."""
+    """Профиль пользователя."""
     profile = get_object_or_404(
         User,
         username=username
