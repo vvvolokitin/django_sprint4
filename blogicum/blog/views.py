@@ -114,8 +114,8 @@ class EditProfile(LoginRequiredMixin, UpdateView):
     model = User
     form_class = EditProfileForm
 
-    def get_object(slef):
-        return slef.request.user
+    def get_object(self):
+        return self.request.user
 
     def get_success_url(self):
         return reverse_lazy(
