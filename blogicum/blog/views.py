@@ -153,11 +153,12 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'blog/create.html'
     model = Post
     form_class = PostForm
+    pk_url_kwarg = 'post_id'
 
     def dispatch(self, request, *args, **kwargs):
         post = get_object_or_404(
             Post,
-            pk=kwargs['pk']
+            pk=kwargs['post_id']
         )
         if post.author != request.user:
             return redirect(
@@ -177,12 +178,13 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
 
     template_name = 'blog/create.html'
     model = Post
+    pk_url_kwarg = 'post_id'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             post = get_object_or_404(
                 Post,
-                pk=kwargs['pk']
+                pk=kwargs['post_id']
             )
             return redirect(
                 'blog:post_detail',
@@ -190,7 +192,7 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
             )
         get_object_or_404(
             Post,
-            pk=kwargs['pk'],
+            pk=kwargs['post_id'],
             author=request.user
         )
         return super().dispatch(request, *args, **kwargs)
@@ -202,11 +204,11 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
 
 
 @login_required
-def add_comment(request, pk):
+def add_comment(request, post_id):
     """Добавление комментария."""
     post = get_object_or_404(
         Post,
-        pk=pk
+        pk=post_id
     )
     form = CommentForm(
         request.POST
@@ -220,7 +222,7 @@ def add_comment(request, pk):
         comment.save()
     return redirect(
         'blog:post_detail',
-        pk=pk
+        pk=post_id
     )
 
 
@@ -231,6 +233,7 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
     model = Comment
     form_class = CommentForm
     success_url = reverse_lazy('blog:index')
+    pk_url_kwarg = 'comment_id'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -240,7 +243,7 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
 
         get_object_or_404(
             Comment,
-            pk=kwargs['pk'],
+            pk=kwargs['comment_id'],
             author=request.user,
         )
 
@@ -257,6 +260,7 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'blog/comment.html'
     model = Comment
     success_url = reverse_lazy('blog:index')
+    pk_url_kwarg = 'comment_id'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -265,7 +269,7 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
             )
         get_object_or_404(
             Comment,
-            pk=kwargs['pk'],
+            pk=kwargs['comment_id'],
             author=request.user
         )
         return super().dispatch(

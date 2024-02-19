@@ -1,6 +1,9 @@
-from django.urls import path
+from django.urls import path, register_converter
 
 from . import views
+from core.converters import UsernamePathConverter
+
+register_converter(UsernamePathConverter, 'username')
 
 app_name = 'blog'
 
@@ -12,7 +15,7 @@ urlpatterns = [
         name='edit_profile'
     ),
     path(
-        'profile/<username>/',
+        'profile/<username:username>/',
         views.user_profile,
         name='profile'
     ),
@@ -22,27 +25,27 @@ urlpatterns = [
         name='create_post'
     ),
     path(
-        'posts/<int:post_id>/edit_comment/<int:pk>/',
+        'posts/<int:post_id>/edit_comment/<int:comment_id>/',
         views.CommentUpdateView.as_view(),
         name='edit_comment'
     ),
     path(
-        'posts/<int:post_id>/delete_comment/<int:pk>/',
+        'posts/<int:post_id>/delete_comment/<int:comment_id>/',
         views.CommentDeleteView.as_view(),
         name='delete_comment'
     ),
     path(
-        'posts/<int:pk>/comment/',
+        'posts/<int:post_id>/comment/',
         views.add_comment,
         name='add_comment'
     ),
     path(
-        'posts/<int:pk>/delete/',
+        'posts/<int:post_id>/delete/',
         views.PostDeleteView.as_view(),
         name='delete_post'
     ),
     path(
-        'posts/<int:pk>/edit/',
+        'posts/<int:post_id>/edit/',
         views.PostUpdateView.as_view(),
         name='edit_post'
     ),

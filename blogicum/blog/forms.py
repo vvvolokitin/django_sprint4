@@ -1,9 +1,11 @@
 from django import forms
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserChangeForm
 
+from .models import Comment, Post
 
-from .models import Post, Comment
+
+User = get_user_model()
 
 
 class PostForm(forms.ModelForm):
@@ -30,47 +32,6 @@ class PostForm(forms.ModelForm):
 
 class EditProfileForm(UserChangeForm):
     """Форма 'Редактирования профиля'."""
-
-    email = forms.EmailField(
-        widget=forms.EmailInput(
-            attrs={
-                'class': 'form-control',
-                'placeholder': "Введите вашу электронную почту"
-            }
-        ),
-        label='Электронная почта'
-    )
-    first_name = forms.CharField(
-        widget=forms.TextInput(
-            attrs={
-                'class': 'form-control',
-                'placeholder': "Введите ваше имя"
-            }
-        ),
-        label='Имя',
-        required=False
-    )
-    last_name = forms.CharField(
-        widget=forms.TextInput(
-            attrs={
-                'class': 'form-control',
-                'placeholder': "Введите вашу фамилию"
-            }
-        ),
-        label='Фамилия',
-        required=False
-
-    )
-    username = forms.CharField(
-        max_length=20,
-        widget=forms.TextInput(
-            attrs={
-                'class': 'form-control',
-                'placeholder': "Введите ваш логин"
-            }
-        ),
-        label='Логин'
-    )
 
     class Meta:
         model = User

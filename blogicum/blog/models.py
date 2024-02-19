@@ -1,22 +1,11 @@
-from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models.query import QuerySet
 from django.urls import reverse
 
-from core.models import PublishedCreatedModel
 from core.constants import MAX_LENGTH, SLICE
+from core.models import PublishedCreatedModel, PublishedPostManager
 
 User = get_user_model()
-
-
-class PublishedPostManager(models.Manager):
-    def get_queryset(self) -> QuerySet:
-        return super().get_queryset().filter(
-            pub_date__lte=timezone.now(),
-            is_published=True,
-            category__is_published=True
-        )
 
 
 class Category(PublishedCreatedModel):
@@ -104,6 +93,7 @@ class Post(PublishedCreatedModel):
         blank=True,
         upload_to='posts_images'
     )
+
     objects = models.Manager()
     proven_objects = PublishedPostManager()
 
@@ -112,14 +102,14 @@ class Post(PublishedCreatedModel):
         verbose_name = 'Публикация'
         verbose_name_plural = 'Публикации'
 
+    def __str__(self):
+        return f'{self.title[:SLICE]}, автор: {self.author}'
+
     def get_absolute_url(self):
         return reverse('blog:post_detail', kwargs={'pk': self.pk})
 
     def comment_count(self):
         return self.comments.count()
-
-    def __str__(self):
-        return f'{self.title[:SLICE]}, автор: {self.author}'
 
 
 class Comment(models.Model):
