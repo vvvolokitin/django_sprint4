@@ -2,7 +2,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Count, Q
-from django.db.models.base import Model as Model
 from django.views.generic import (
     ListView,
     CreateView,
