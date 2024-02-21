@@ -128,7 +128,6 @@ class EditProfile(LoginRequiredMixin, UpdateView):
     """Редактирование профиля пользователя."""
 
     template_name = 'blog/user.html'
-
     model = User
     form_class = EditProfileForm
 
