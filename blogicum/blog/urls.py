@@ -3,6 +3,7 @@ from django.urls import path, register_converter
 from . import views
 from core.converters import UsernamePathConverter
 
+
 register_converter(UsernamePathConverter, 'username')
 
 app_name = 'blog'

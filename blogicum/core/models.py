@@ -25,6 +25,12 @@ class PublishedCreatedModel(models.Model):
 
 
 class PublishedPostManager(models.Manager):
+    """
+    Абстрактная модель.
+
+    Возвращает опубликованные посты.
+    """
+
     def get_queryset(self) -> QuerySet:
         return super().get_queryset().filter(
             pub_date__lte=timezone.now(),

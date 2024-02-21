@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Count, Q
 from django.db.models.base import Model as Model
 from django.views.generic import (
@@ -201,6 +201,14 @@ class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             **kwargs
         )
 
+    def get_success_url(self):
+        return reverse_lazy(
+            'blog:post_detail',
+            kwargs={
+                'post_id': self.get_object().pk
+            }
+        )
+
 
 class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """Удаление поста."""
@@ -265,8 +273,6 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'blog/comment.html'
     model = Comment
     form_class = CommentForm
-    success_url = reverse_lazy(
-        'blog:index')
     pk_url_kwarg = 'comment_id'
 
     def dispatch(self, request, *args, **kwargs):
@@ -287,13 +293,20 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
             **kwargs
         )
 
+    def get_success_url(self):
+        return reverse_lazy(
+            'blog:post_detail',
+            kwargs={
+                'post_id': self.get_object().post.pk
+            }
+        )
+
 
 class CommentDeleteView(LoginRequiredMixin, DeleteView):
     """Удаление комментария."""
 
     template_name = 'blog/comment.html'
     model = Comment
-    success_url = reverse_lazy('blog:index')
     pk_url_kwarg = 'comment_id'
 
     def dispatch(self, request, *args, **kwargs):
@@ -310,4 +323,12 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
             request,
             *args,
             **kwargs
+        )
+
+    def get_success_url(self):
+        return reverse_lazy(
+            'blog:post_detail',
+            kwargs={
+                'post_id': self.get_object().post.pk
+            }
         )
