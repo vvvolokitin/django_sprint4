@@ -95,7 +95,7 @@ class Post(PublishedCreatedModel):
     )
 
     objects = models.Manager()
-    proven_objects = PublishedPostManager()
+    published_posts = PublishedPostManager()
 
     class Meta:
         ordering = ('-pub_date',)
@@ -107,9 +107,6 @@ class Post(PublishedCreatedModel):
 
     def get_absolute_url(self):
         return reverse('blog:post_detail', kwargs={'pk': self.pk})
-
-    def comment_count(self):
-        return self.comments.count()
 
 
 class Comment(models.Model):
