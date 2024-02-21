@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q
 from django.views.generic import (
     ListView,
@@ -11,9 +11,10 @@ from django.views.generic import (
 )
 from django.utils import timezone
 from django.urls import reverse_lazy
-from django.http import HttpRequest, HttpResponse, Http404
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 
+from .mixins import UserTestCastomMixin
 from .models import Category, Post, Comment
 from .forms import PostForm, EditProfileForm, CommentForm
 from core.constants import PAGINATE_LIMIT
@@ -27,7 +28,7 @@ class PostListView(ListView):
     model = Post
     queryset = Post.published_posts.annotate(
         comment_count=Count('comments')
-    ).all()
+    )
     ordering = '-pub_date'
     paginate_by = PAGINATE_LIMIT
 
@@ -50,14 +51,17 @@ class PostDetailView(DetailView):
         return context
 
     def get_object(self, queryset=None):
-        post = super().get_object(queryset=queryset)
-        if not ((
-            post.is_published
-            and post.category.is_published
-            and post.pub_date <= timezone.now()
-        ) or post.author == self.request.user):
-            raise Http404
-        return post
+        return get_object_or_404(
+            self.model.objects.filter(
+                Q(author_id=self.request.user.id)
+                | Q(pub_date__lte=timezone.now())
+                & Q(is_published=True)
+                & Q(category__is_published=True)
+            ),
+            pk=self.kwargs[
+                self.pk_url_kwarg
+            ]
+        )
 
 
 def category_posts(request: HttpRequest, category_slug: str) -> HttpResponse:
@@ -95,15 +99,8 @@ def user_profile(request, username):
         User,
         username=username
     )
-    flag = ~Q(
-        pk__in=[]
-    )
-    if request.user.is_authenticated:
-        flag = Q(
-            author=request.user
-        )
     posts = profile.posts.filter(
-        flag
+        Q(author_id=request.user.id)
         | Q(pub_date__lte=timezone.now())
         & Q(is_published=True,)
     ).annotate(
@@ -114,13 +111,15 @@ def user_profile(request, username):
         '-pub_date'
     )
 
-    page_obj = get_paginator(posts, request.GET.get('page'))
     return render(
         request,
         'blog/profile.html',
         {
             'profile': profile,
-            'page_obj': page_obj,
+            'page_obj': get_paginator(
+                posts,
+                request.GET.get('page')
+            ),
         }
     )
 
@@ -165,39 +164,21 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         )
 
 
-class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class PostUpdateView(UserTestCastomMixin, UpdateView):
     """Редактирование поста."""
 
     template_name = 'blog/create.html'
     model = Post
     form_class = PostForm
     pk_url_kwarg = 'post_id'
-    redirect_field_name = None
-    login_url = '/'
 
-    def get_login_url(self):
-        return f'/posts/{self.get_object().pk}/'
-
-    def test_func(self):
-        return self.get_object().author == self.request.user
-
-    def handle_no_permission(self):
-
-        return redirect(
-            'blog:post_detail',
-            post_id=self.get_object().pk
-        )
-
-    def dispatch(self, request, *args, **kwargs):
-        get_object_or_404(
-            Post,
-            pk=kwargs['post_id']
-        )
-
-        return super().dispatch(
-            request,
-            *args,
-            **kwargs
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            self.model,
+            pk=self.kwargs[
+                self.pk_url_kwarg
+            ],
+            is_published=True
         )
 
     def get_success_url(self):
@@ -209,33 +190,21 @@ class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         )
 
 
-class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class PostDeleteView(UserTestCastomMixin, DeleteView):
     """Удаление поста."""
 
     template_name = 'blog/create.html'
     model = Post
     pk_url_kwarg = 'post_id'
-    redirect_field_name = None
-    login_url = '/'
 
-    def get_login_url(self):
-        return f'/posts/{self.get_object().pk}/'
-
-    def test_func(self):
-        return self.get_object().author == self.request.user
-
-    def handle_no_permission(self):
-        return redirect(
-            'blog:post_detail',
-            post_id=self.get_object().pk
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            self.model,
+            pk=self.kwargs[
+                self.pk_url_kwarg
+            ],
+            is_published=True
         )
-
-    def dispatch(self, request, *args, **kwargs):
-        get_object_or_404(
-            Post,
-            pk=kwargs['post_id']
-        )
-        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
         return reverse_lazy(
@@ -246,10 +215,6 @@ class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 @login_required
 def add_comment(request, post_id):
     """Добавление комментария."""
-    post = get_object_or_404(
-        Post,
-        pk=post_id
-    )
     form = CommentForm(
         request.POST
         or None
@@ -258,7 +223,10 @@ def add_comment(request, post_id):
     if form.is_valid():
         comment = form.save(commit=False)
         comment.author = request.user
-        comment.post = post
+        comment.post = get_object_or_404(
+            Post,
+            pk=post_id
+        )
         comment.save()
     return redirect(
         'blog:post_detail',
@@ -266,7 +234,7 @@ def add_comment(request, post_id):
     )
 
 
-class CommentUpdateView(LoginRequiredMixin, UpdateView):
+class CommentUpdateView(UserTestCastomMixin, UpdateView):
     """Редактирование комментария."""
 
     template_name = 'blog/comment.html'
@@ -274,22 +242,18 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
     form_class = CommentForm
     pk_url_kwarg = 'comment_id'
 
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return redirect(
-                'blog:index'
-            )
-
-        get_object_or_404(
-            Comment,
-            pk=kwargs['comment_id'],
-            author=request.user,
+    def handle_no_permission(self):
+        return redirect(
+            'blog:post_detail',
+            post_id=self.get_object().post.pk
         )
 
-        return super().dispatch(
-            request,
-            *args,
-            **kwargs
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            self.model,
+            pk=self.kwargs[
+                self.pk_url_kwarg
+            ]
         )
 
     def get_success_url(self):
@@ -301,27 +265,25 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
         )
 
 
-class CommentDeleteView(LoginRequiredMixin, DeleteView):
+class CommentDeleteView(UserTestCastomMixin, DeleteView):
     """Удаление комментария."""
 
     template_name = 'blog/comment.html'
     model = Comment
     pk_url_kwarg = 'comment_id'
 
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return redirect(
-                'blog:index'
-            )
-        get_object_or_404(
-            Comment,
-            pk=kwargs['comment_id'],
-            author=request.user
+    def handle_no_permission(self):
+        return redirect(
+            'blog:post_detail',
+            post_id=self.get_object().post.pk
         )
-        return super().dispatch(
-            request,
-            *args,
-            **kwargs
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            self.model,
+            pk=self.kwargs[
+                self.pk_url_kwarg
+            ]
         )
 
     def get_success_url(self):

@@ -2,8 +2,9 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
 
+from .managers import PublishedPostManager
 from core.constants import MAX_LENGTH, SLICE
-from core.models import PublishedCreatedModel, PublishedPostManager
+from core.models import PublishedCreatedModel
 
 User = get_user_model()
 
